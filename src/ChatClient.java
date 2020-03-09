@@ -41,14 +41,15 @@ public class ChatClient {
                     System.out.println("Leaving chat");
                     handleInput = false;
                     userInput = "left chat";
-                }else if (userInput.equals("U")){
-                    try {
-                        datagramSocket.send(datagramPacket);
-                    } catch (IOException e) {
-                        System.out.println("Datagram packet sending failed");
-                        e.printStackTrace();
-                    }
-                }
+                }//else if (userInput.equals("U")){
+//                    try {
+//                        datagramSocket.send(datagramPacket);
+//                        continue;
+//                    } catch (IOException e) {
+//                        System.out.println("Datagram packet sending failed");
+//                        e.printStackTrace();
+//                    }
+//                }
                 out.println(nickname + ": " + userInput);
             }
         }
@@ -91,18 +92,16 @@ public class ChatClient {
     }
 
     private class UDPListener extends Thread{
-        private int port;
+        private DatagramSocket socket;
 
-        public UDPListener(int port){
-            this.port = port;
+        public UDPListener(DatagramSocket socket){
+            this.socket = socket;
         }
 
         @Override
         public void run() {
-            DatagramSocket socket = null;
 
             try{
-                socket = new DatagramSocket(port);
                 byte[] receiveBuffer = new byte[1024];
 
                 while(true) {
@@ -172,6 +171,9 @@ public class ChatClient {
                     nicknameStatus =  in.readLine();
                     if (nicknameStatus == null) throw new Exception();
                 }
+                //new ChatClient().new UDPListener(datagramSocket).start();
+                //out.println("localhost"); //should be real ip address
+                //out.println(datagramSocket.getLocalPort());
 
                 System.out.println("Hello " + nickname);
 
@@ -184,7 +186,7 @@ public class ChatClient {
 
                 userInputHandler.start();
                 serverInputHandler.start();
-                //new ChatClient().new UDPListener(portNumber).start();
+
 
                 userInputHandler.join();
                 serverInputHandler.join();

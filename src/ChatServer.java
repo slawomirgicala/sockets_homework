@@ -2,9 +2,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,13 +34,46 @@ public class ChatServer {
                     if (nickname == null) return;
                 }
                 out.println("free");
-                ClientServiceThread client = new ClientServiceThread(out, in, nickname);
+                //String hostName = in.readLine();
+                //int udpPortNumber = in.read();
+                ClientServiceThread client = new ClientServiceThread(out, in, nickname, "", 12131);
                 ChatServer.addClient(nickname, client);
                 client.start();
             } catch (IOException e){
                 e.printStackTrace();
             }
 
+        }
+    }
+
+    private class UDPListener extends Thread{
+        private DatagramSocket socket;
+
+        public  UDPListener(DatagramSocket socket){
+            this.socket = socket;
+        }
+
+        @Override
+        public void run() {
+            try{
+                byte[] receiveBuffer = new byte[1024];
+
+                while(true) {
+                    Arrays.fill(receiveBuffer, (byte)0);
+                    DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
+                    socket.receive(receivePacket);
+                    //String msg = new String(receivePacket.getData());
+                    ChatServer.sendUdpMessage(receivePacket.getData(), "");
+                }
+            }
+            catch(Exception e){
+                e.printStackTrace();
+            }
+            finally {
+                if (socket != null) {
+                    socket.close();
+                }
+            }
         }
     }
 
@@ -52,6 +87,9 @@ public class ChatServer {
             // create socket
             serverSocket = new ServerSocket(portNumber);
             udpSocket = new DatagramSocket(portNumber);
+
+            //new ChatServer().new UDPListener(udpSocket).start();
+
             while(true){
 
                 // accept client
@@ -84,8 +122,13 @@ public class ChatServer {
         }
     }
 
-    public static void sendUdpMessage(String receivedFrom){
-
+    public static void sendUdpMessage(byte[] message, String receivedFrom){
+        for (String nickname : clients.keySet()){
+            if (!nickname.equals(receivedFrom)){
+                ClientServiceThread client = clients.get(nickname);
+                if (client != null) client.sendUdpMessage(message);
+            }
+        }
     }
 
     public static void addClient(String nickname, ClientServiceThread client){
